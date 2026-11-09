@@ -281,10 +281,16 @@
     var ws;
     try { ws = new WebSocket('ws://localhost:8081'); } catch (e) { flash('No se pudo abrir ' + label); return; }
     var done = false;
-    ws.onopen = function () { ws.send(JSON.stringify({ type: 4 })); };          // GetModules
+    var tries = 0;
+    function ask() { ws.send(JSON.stringify({ type: 4, payload: tries > 0 })); } // GetModules (force reload on retries)
+    ws.onopen = function () { flash('Abriendo ' + label + '…'); ask(); };
     ws.onmessage = function (ev) {
       var msg; try { msg = JSON.parse(ev.data); } catch (e) { return; }
-      if (msg.type !== 4 || !msg.payload || done) return;
+      if (msg.type !== 4 || done) return;
+      if (!msg.payload || !msg.payload.length) {               // list not ready yet: ask again
+        if (++tries < 10) setTimeout(ask, 500); else flash(label + ' no respondió, intenta de nuevo');
+        return;
+      }
       var mdl = null;
       for (var i = 0; i < msg.payload.length; i++)
         if ((msg.payload[i].fullName || '').toLowerCase().indexOf(nameFragment) !== -1) mdl = msg.payload[i];
