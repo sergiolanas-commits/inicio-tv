@@ -1,10 +1,11 @@
 {
   "name": "inicio-tv",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "description": "Pantalla de inicio familiar: reloj, clima, perfiles, NBA y series",
   "packageType": "app",
   "appName": "Inicio",
   "appPath": "app/index.html",
+  "serviceFile": "service.js",
   "keys": [],
   "license": "MIT"
 }

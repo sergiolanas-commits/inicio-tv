@@ -188,7 +188,8 @@
       var missing = installed && !def.module && !app;
       el.className = 'tile' + (missing ? ' missing' : '');
       var src = app && app.iconPath ? app.iconPath : '';
-      if (src && src.charAt(0) === '/') src = 'file://' + src;
+      if (src && svcOk) src = SVC + '/icon?path=' + encodeURIComponent(src);
+      else if (src && src.charAt(0) === '/') src = 'file://' + src;
       var icon = src ? '<img src="' + src + '" alt="">' : def.letter;
       var sub = def.sub || '';
       if (missing) sub = 'No instalada';
@@ -218,7 +219,19 @@
     if (!ids.length) { flash(t.def.label + ': falta su ID en esta tele'); return; }
     flash('Abriendo ' + t.def.label + '…');
     if (hasTizen) tryIds(ids, 0, t.def.label);
-    else remoteLaunch(ids, 0, t.def.label);
+    else svcLaunch(ids, 0, t.def.label, '');
+  }
+
+  // 0) Through the local service (works inside TizenBrew)
+  function svcLaunch(ids, i, label, lastErr) {
+    if (i >= ids.length) {
+      if (lastErr === 'sin servicio') remoteLaunch(ids, 0, label); // service not running: try the TV channel
+      else flash(label + ' no se pudo abrir (' + lastErr + ')');
+      return;
+    }
+    svcGet('/launch?id=' + encodeURIComponent(ids[i]), function () {}, function (err) {
+      svcLaunch(ids, i + 1, label, err || 'error');
+    });
   }
 
   // 1) Tizen API (works when installed as a normal app)
@@ -291,11 +304,35 @@
     flash.t = setTimeout(function () { h.textContent = HINTS[zone]; }, 3000);
   }
 
-  function loadApps() {
-    if (!hasTizen) { buildDock(null); return; }
-    try {
-      tizen.application.getAppsInfo(function (list) { buildDock(list); }, function () { buildDock(null); });
-    } catch (e) { buildDock(null); }
+  // ---------- Local service (runs inside TizenBrew, has permission to list/launch apps) ----------
+  var SVC = 'http://127.0.0.1:8099';
+  var svcOk = false;
+  function svcGet(path, ok, fail) {
+    var x = new XMLHttpRequest();
+    x.open('GET', SVC + path, true);
+    x.timeout = 6000;
+    x.onload = function () {
+      var d = null; try { d = JSON.parse(x.responseText); } catch (e) {}
+      if (x.status === 200) ok(d); else fail(d && d.error);
+    };
+    x.onerror = x.ontimeout = function () { fail('sin servicio'); };
+    x.send();
+  }
+
+  function loadApps(attempt) {
+    attempt = attempt || 0;
+    if (hasTizen) {
+      try { tizen.application.getAppsInfo(function (list) { buildDock(list); }, function () { fromService(); }); }
+      catch (e) { fromService(); }
+      return;
+    }
+    fromService();
+    function fromService() {
+      svcGet('/apps', function (list) { svcOk = true; buildDock(list); }, function () {
+        if (!tiles.length) buildDock(null);
+        if (attempt < 8) setTimeout(function () { loadApps(attempt + 1); }, 1500); // service may still be starting
+      });
+    }
   }
 
   // ---------- Focus zones: dock (apps) · panel (widget) · who (profile) ----------
