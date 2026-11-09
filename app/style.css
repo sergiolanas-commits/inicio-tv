@@ -1,0 +1,159 @@
+/* Inicio — minimal, Apple-style home for Samsung Tizen (Chromium 56 safe: flexbox only, no backdrop-filter) */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body {
+  width: 1920px; height: 1080px; overflow: hidden;
+  background: #07070a;
+  color: #f5f5f7;
+  font-family: "SamsungOne", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  cursor: none;
+}
+
+/* ---------- Ambient background ---------- */
+.bg { position: absolute; top: 0; left: 0; width: 1920px; height: 1080px; overflow: hidden; }
+.blob {
+  position: absolute; border-radius: 50%;
+  opacity: .55; will-change: transform;
+}
+.b1 { width: 1300px; height: 1300px; left: -380px; top: -520px;
+  background: radial-gradient(circle, rgba(70,90,200,.55) 0%, rgba(70,90,200,0) 65%);
+  -webkit-animation: drift1 38s ease-in-out infinite alternate; animation: drift1 38s ease-in-out infinite alternate; }
+.b2 { width: 1200px; height: 1200px; right: -420px; top: -200px;
+  background: radial-gradient(circle, rgba(150,70,170,.42) 0%, rgba(150,70,170,0) 65%);
+  -webkit-animation: drift2 46s ease-in-out infinite alternate; animation: drift2 46s ease-in-out infinite alternate; }
+.b3 { width: 1400px; height: 1400px; left: 420px; bottom: -900px;
+  background: radial-gradient(circle, rgba(30,140,160,.38) 0%, rgba(30,140,160,0) 65%);
+  -webkit-animation: drift3 54s ease-in-out infinite alternate; animation: drift3 54s ease-in-out infinite alternate; }
+
+@-webkit-keyframes drift1 { from { -webkit-transform: translate(0,0); } to { -webkit-transform: translate(220px,140px); } }
+@keyframes drift1 { from { transform: translate(0,0); } to { transform: translate(220px,140px); } }
+@-webkit-keyframes drift2 { from { -webkit-transform: translate(0,0); } to { -webkit-transform: translate(-260px,120px); } }
+@keyframes drift2 { from { transform: translate(0,0); } to { transform: translate(-260px,120px); } }
+@-webkit-keyframes drift3 { from { -webkit-transform: translate(0,0); } to { -webkit-transform: translate(-200px,-160px); } }
+@keyframes drift3 { from { transform: translate(0,0); } to { transform: translate(-200px,-160px); } }
+
+/* ---------- Layout ---------- */
+#stage { position: relative; width: 1920px; height: 1080px; padding: 72px 112px 0; }
+
+.top { display: -webkit-flex; display: flex; -webkit-justify-content: space-between; justify-content: space-between; -webkit-align-items: center; align-items: center; height: 96px; }
+.greeting { font-size: 34px; font-weight: 500; color: rgba(245,245,247,.72); letter-spacing: .2px; }
+
+.weather { display: -webkit-flex; display: flex; -webkit-align-items: center; align-items: center; }
+.w-icon { width: 72px; height: 72px; margin-right: 20px; }
+.w-icon svg { width: 72px; height: 72px; }
+.w-temp { font-size: 52px; font-weight: 300; line-height: 1; }
+.w-desc { font-size: 22px; color: rgba(245,245,247,.6); margin-top: 6px; }
+
+/* ---------- Clock ---------- */
+.hero { position: absolute; left: 112px; top: 230px; }
+.clock { display: inline-block; font-size: 260px; font-weight: 200; letter-spacing: -8px; line-height: .9; }
+.ampm { display: inline-block; vertical-align: top; margin-left: 18px; margin-top: 30px; font-size: 40px; font-weight: 400; color: rgba(245,245,247,.55); }
+.date { font-size: 44px; font-weight: 400; color: rgba(245,245,247,.85); margin-top: 26px; }
+.w-range { font-size: 26px; color: rgba(245,245,247,.5); margin-top: 14px; }
+
+/* ---------- Dock ---------- */
+.dock {
+  position: absolute; left: 112px; right: 112px; bottom: 120px;
+  display: -webkit-flex; display: flex;
+}
+.tile {
+  -webkit-flex: 1; flex: 1; height: 236px; margin-right: 28px;
+  border-radius: 28px;
+  background: rgba(255,255,255,.07);
+  border: 2px solid rgba(255,255,255,.08);
+  display: -webkit-flex; display: flex; -webkit-flex-direction: column; flex-direction: column;
+  -webkit-align-items: center; align-items: center; -webkit-justify-content: center; justify-content: center;
+  -webkit-transition: -webkit-transform .22s ease, background .22s ease, border-color .22s ease, box-shadow .22s ease;
+  transition: transform .22s ease, background .22s ease, border-color .22s ease, box-shadow .22s ease;
+}
+.tile:last-child { margin-right: 0; }
+.tile .ico { width: 128px; height: 128px; border-radius: 30px; overflow: hidden; display: -webkit-flex; display: flex; -webkit-align-items: center; align-items: center; -webkit-justify-content: center; justify-content: center; background: rgba(255,255,255,.1); font-size: 44px; font-weight: 600; color: #fff; }
+.tile .ico img { width: 100%; height: 100%; object-fit: cover; }
+.tile .name { font-size: 26px; font-weight: 500; margin-top: 18px; color: rgba(245,245,247,.82); }
+.tile .sub { font-size: 18px; margin-top: 4px; color: rgba(245,245,247,.42); }
+
+.tile.focus {
+  -webkit-transform: scale(1.09); transform: scale(1.09);
+  background: rgba(255,255,255,.18);
+  border-color: rgba(255,255,255,.55);
+  box-shadow: 0 24px 60px rgba(0,0,0,.45);
+}
+.tile.focus .name { color: #fff; }
+.tile.missing { opacity: .45; }
+
+.hint { position: absolute; left: 0; right: 0; bottom: 52px; text-align: center; font-size: 20px; color: rgba(245,245,247,.35); letter-spacing: .5px; }
+
+/* ---------- Ambient (idle) mode ---------- */
+.dock, .hint, .top { -webkit-transition: opacity .8s ease; transition: opacity .8s ease; }
+.hero { -webkit-transition: -webkit-transform .9s ease; transition: transform .9s ease; }
+body.ambient .dock, body.ambient .hint, body.ambient .greeting { opacity: 0; }
+body.ambient .hero { -webkit-transform: translateY(120px); transform: translateY(120px); }
+body.ambient .who { opacity: 0; }
+
+/* ---------- Widget panel ---------- */
+.panel { position: absolute; right: 112px; top: 236px; width: 760px; height: 370px; padding: 34px 40px 28px;
+  border-radius: 32px; background: rgba(255,255,255,.07); border: 2px solid rgba(255,255,255,.09);
+  opacity: 0; -webkit-transition: opacity .6s ease; transition: opacity .6s ease; }
+.panel.on { opacity: 1; }
+body.ambient .panel { opacity: 0; }
+.w-title { font-size: 22px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; color: rgba(245,245,247,.55);
+  display: -webkit-flex; display: flex; -webkit-align-items: center; align-items: center; }
+.w-ball { width: 22px; height: 22px; border-radius: 50%; margin-right: 12px;
+  background: radial-gradient(circle at 35% 35%, #ffb066, #e8641b 70%); box-shadow: inset 0 0 0 2px rgba(0,0,0,.25); }
+.w-body { height: 244px; margin-top: 18px; -webkit-transition: opacity .3s ease; transition: opacity .3s ease; }
+.w-dots { text-align: center; }
+.w-dots i { display: inline-block; width: 8px; height: 8px; border-radius: 4px; margin: 0 5px; background: rgba(255,255,255,.22); }
+.w-dots i.on { width: 26px; background: rgba(255,255,255,.75); }
+.w-empty { font-size: 28px; color: rgba(245,245,247,.6); padding-top: 80px; text-align: center; }
+
+/* NBA card */
+.n-team { display: -webkit-flex; display: flex; -webkit-align-items: center; align-items: center; height: 92px; color: rgba(245,245,247,.62); }
+.n-team.win { color: #fff; }
+.n-badge { width: 76px; height: 56px; border-radius: 14px; font-size: 22px; font-weight: 700; color: #fff; letter-spacing: 1px;
+  display: -webkit-flex; display: flex; -webkit-align-items: center; align-items: center; -webkit-justify-content: center; justify-content: center; }
+.n-name { -webkit-flex: 1; flex: 1; margin-left: 24px; font-size: 36px; font-weight: 500; }
+.n-name small { display: block; font-size: 19px; font-weight: 400; color: rgba(245,245,247,.42); margin-top: 2px; }
+.n-score { font-size: 64px; font-weight: 300; min-width: 120px; text-align: right; }
+.n-team.win .n-score { font-weight: 500; }
+.n-status { margin-top: 10px; font-size: 22px; color: rgba(245,245,247,.55); }
+.n-status.live { color: #ff6b5a; font-weight: 600; }
+.n-badge { box-shadow: inset 0 0 0 2px rgba(255,255,255,.18); text-shadow: 0 1px 2px rgba(0,0,0,.4); }
+.n-team.fav .n-badge { box-shadow: 0 0 0 3px #ffc94d, 0 0 22px rgba(255,201,77,.45); }
+.star { color: #ffc94d; font-size: 26px; vertical-align: 4px; }
+.n-fav { display: inline-block; margin-left: 16px; padding: 3px 12px; border-radius: 12px; font-size: 17px; font-weight: 600;
+  color: #1a1400; background: #ffc94d; vertical-align: 2px; }
+
+/* Series card */
+.s-card { padding-top: 8px; }
+.s-meta { display: -webkit-flex; display: flex; -webkit-align-items: center; align-items: center; }
+.chip { font-size: 19px; font-weight: 600; color: #fff; padding: 6px 16px; border-radius: 20px; }
+.s-genre { margin-left: 16px; font-size: 21px; color: rgba(245,245,247,.55); }
+.s-title { font-size: 62px; font-weight: 300; margin-top: 26px; line-height: 1.05; }
+.s-desc { font-size: 26px; line-height: 1.4; color: rgba(245,245,247,.72); margin-top: 18px; }
+
+/* ---------- Current user chip ---------- */
+.who { position: absolute; right: 112px; top: 640px; font-size: 26px; color: rgba(245,245,247,.8);
+  display: -webkit-flex; display: flex; -webkit-align-items: center; align-items: center;
+  -webkit-transition: opacity .8s ease; transition: opacity .8s ease; }
+.who-dot { width: 48px; height: 48px; border-radius: 50%; margin-right: 14px; font-size: 22px; font-weight: 600; color: #fff;
+  display: -webkit-flex; display: flex; -webkit-align-items: center; align-items: center; -webkit-justify-content: center; justify-content: center; }
+.who-hint { margin-left: 18px; font-size: 18px; color: rgba(245,245,247,.38); }
+
+/* ---------- Profile picker ---------- */
+.picker { position: absolute; top: 0; left: 0; width: 1920px; height: 1080px; background: rgba(7,7,10,.72);
+  display: -webkit-flex; display: flex; -webkit-flex-direction: column; flex-direction: column;
+  -webkit-align-items: center; align-items: center; -webkit-justify-content: center; justify-content: center;
+  -webkit-transition: opacity .5s ease; transition: opacity .5s ease; }
+.p-title { font-size: 64px; font-weight: 300; margin-bottom: 90px; }
+.p-row { display: -webkit-flex; display: flex; }
+.p-card { margin: 0 60px; text-align: center; -webkit-transition: -webkit-transform .25s ease, opacity .25s ease; transition: transform .25s ease, opacity .25s ease; opacity: .6; }
+.p-avatar { width: 240px; height: 240px; border-radius: 50%; margin: 0 auto;
+  display: -webkit-flex; display: flex; -webkit-align-items: center; align-items: center; -webkit-justify-content: center; justify-content: center;
+  font-size: 110px; font-weight: 300; color: #fff; -webkit-transition: box-shadow .25s ease; transition: box-shadow .25s ease; }
+.p-name { font-size: 36px; margin-top: 30px; color: rgba(245,245,247,.85); }
+.p-card.focus { opacity: 1; -webkit-transform: scale(1.12); transform: scale(1.12); }
+.p-hint { margin-top: 100px; font-size: 22px; color: rgba(245,245,247,.38); }
+#stage { -webkit-transition: opacity .5s ease; transition: opacity .5s ease; }
+body:not(.picked) #stage { opacity: .15; }
+body.picked .picker { opacity: 0; pointer-events: none; }

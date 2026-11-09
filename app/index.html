@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1920, user-scalable=no">
+<title>Inicio</title>
+<link rel="stylesheet" href="style.css">
+<style id="themeStyle"></style>
+</head>
+<body>
+  <div class="bg">
+    <div class="blob b1"></div>
+    <div class="blob b2"></div>
+    <div class="blob b3"></div>
+  </div>
+
+  <main id="stage">
+    <header class="top">
+      <div class="greeting" id="greeting">Hola</div>
+      <div class="weather" id="weather">
+        <div class="w-icon" id="wIcon"></div>
+        <div class="w-main">
+          <div class="w-temp" id="wTemp">--°</div>
+          <div class="w-desc" id="wDesc">Cargando clima…</div>
+        </div>
+      </div>
+    </header>
+
+    <section class="hero">
+      <div class="clock" id="clock">--:--</div>
+      <div class="ampm" id="ampm"></div>
+      <div class="date" id="date"></div>
+      <div class="w-range" id="wRange"></div>
+    </section>
+
+    <aside class="panel" id="panel">
+      <div class="w-title" id="wTitle"></div>
+      <div class="w-body" id="wBody"></div>
+      <div class="w-dots" id="wDots"></div>
+    </aside>
+    <div class="who" id="who"></div>
+    <nav class="dock" id="dock"></nav>
+    <div class="hint" id="hint">◀ ▶ para elegir · OK para abrir</div>
+  </main>
+
+  <section class="picker" id="picker">
+    <div class="p-title">¿Quién está viendo?</div>
+    <div class="p-row" id="pRow"></div>
+    <div class="p-hint">◀ ▶ para elegir · OK para entrar</div>
+  </section>
+
+  <script src="widgets.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
