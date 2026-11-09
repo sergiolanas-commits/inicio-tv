@@ -212,22 +212,55 @@
 
   function launch() {
     var t = tiles[focusIndex];
-    if (!t || !hasTizen) return;
+    if (!t) return;
     if (t.def.module) { launchBrewModule(t.def.module, t.def.label); return; }
     var ids = (t.app ? [t.app.id] : []).concat(t.def.ids || []);
     if (!ids.length) { flash(t.def.label + ': falta su ID en esta tele'); return; }
     flash('Abriendo ' + t.def.label + '…');
-    tryIds(ids, 0, t.def.label, '');
+    if (hasTizen) tryIds(ids, 0, t.def.label);
+    else remoteLaunch(ids, 0, t.def.label);
   }
 
-  // Try each candidate Samsung app ID until one opens
-  function tryIds(ids, i, label, lastErr) {
-    if (i >= ids.length) { flash(label + ' no se pudo abrir (' + lastErr + ')'); return; }
+  // 1) Tizen API (works when installed as a normal app)
+  function tryIds(ids, i, label) {
+    if (i >= ids.length) { remoteLaunch(ids, 0, label); return; } // fall back to the TV's remote-control channel
     try {
-      tizen.application.launch(ids[i], null, function (err) {
-        tryIds(ids, i + 1, label, (err && err.name) || 'error');
-      });
-    } catch (e) { tryIds(ids, i + 1, label, e.name || 'error'); }
+      tizen.application.launch(ids[i], null, function () { tryIds(ids, i + 1, label); });
+    } catch (e) { tryIds(ids, i + 1, label); }
+  }
+
+  // 2) The TV's own remote-control channel (same one phone remote apps use).
+  //    Works from inside TizenBrew. The first time, the TV asks to allow "Inicio".
+  var rc = null, rcReady = false, rcQueue = [], rcPending = null;
+  function rcSend(obj) { if (rcReady) rc.send(JSON.stringify(obj)); else rcQueue.push(obj); }
+  function rcConnect() {
+    if (rc && (rc.readyState === 0 || rc.readyState === 1)) return;
+    rcReady = false;
+    try { rc = new WebSocket('ws://127.0.0.1:8001/api/v2/channels/samsung.remote.control?name=' + btoa('Inicio')); }
+    catch (e) { flash('No se pudo conectar con la tele'); return; }
+    rc.onmessage = function (ev) {
+      var msg; try { msg = JSON.parse(ev.data); } catch (e) { return; }
+      if (msg.event === 'ms.channel.connect') {
+        rcReady = true;
+        while (rcQueue.length) rc.send(JSON.stringify(rcQueue.shift()));
+      } else if (msg.event === 'ms.channel.unauthorized') {
+        flash('La tele no dio permiso. Vuelve a intentar y elige "Permitir"');
+      } else if (msg.event === 'ed.apps.launch' && rcPending) {
+        var p = rcPending; rcPending = null; clearTimeout(p.timer);
+        if (msg.data === 200 || msg.data === '200' || msg.data === true) return; // opened
+        remoteLaunch(p.ids, p.i + 1, p.label);
+      }
+    };
+    rc.onerror = function () { flash('No se pudo conectar con la tele'); };
+    rc.onclose = function () { rcReady = false; };
+  }
+  function remoteLaunch(ids, i, label) {
+    if (i >= ids.length) { flash(label + ' no se pudo abrir'); return; }
+    rcConnect();
+    rcPending = { ids: ids, i: i, label: label,
+      timer: setTimeout(function () { if (rcPending) { rcPending = null; remoteLaunch(ids, i + 1, label); } }, rcReady ? 4000 : 20000) };
+    rcSend({ method: 'ms.channel.emit', params: { event: 'ed.apps.launch', to: 'host',
+      data: { appId: ids[i], action_type: /\./.test(ids[i]) ? 'NATIVE_LAUNCH' : 'DEEP_LINK' } } });
   }
 
   // Launch a TizenBrew module (e.g. TizenTube) through TizenBrew's local service
