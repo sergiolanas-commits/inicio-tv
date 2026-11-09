@@ -11,12 +11,15 @@
     idleMinutes: 3,
     apps: [
       // match: lowercase fragments to find the installed app by name; avoid: fragments to skip
-      { label: 'TizenTube', sub: 'YouTube sin anuncios', match: ['tizenbrew'], avoid: ['installer'], letter: 'T' },
-      { label: 'Netflix',   match: ['netflix'], letter: 'N' },
-      { label: 'Apple TV',  match: ['apple tv'], avoid: ['music'], letter: 'A' },
-      { label: 'Disney+',   match: ['disney'], letter: 'D' },
-      { label: 'Prime Video', match: ['prime video', 'amazon prime'], letter: 'P' },
-      { label: 'HBO Max',   match: ['hbo max', 'max'], exact: ['max', 'hbo max', 'hbomax'], letter: 'H' }
+      // ids: Samsung app IDs tried in order when the app list isn't readable (inside TizenBrew)
+      { label: 'TizenTube', sub: 'Sin anuncios', module: 'tizentube', letter: 'T', color: '#e62117' },
+      { label: 'Netflix',   match: ['netflix'], ids: ['3201907018807', '11101200001', 'RN1MCdNq8t.Netflix'], letter: 'N', color: '#e50914' },
+      { label: 'Disney+',   match: ['disney'], ids: ['3201901017640', '3202009021709', '3202204027038', 'MCmYXNxgcu.DisneyPlus'], letter: 'D', color: '#1f4fd1' },
+      { label: 'Prime Video', match: ['prime video', 'amazon prime'], ids: ['3201910019365', '3201512006785', 'evKhCgZelL.AmazonIgnitionLauncher2'], letter: 'P', color: '#1aa3ff' },
+      { label: 'Apple TV',  match: ['apple tv'], avoid: ['music'], ids: ['3201807016597'], letter: 'A', color: '#3a3a3c' },
+      { label: 'HBO Max',   match: ['hbo max', 'max'], exact: ['max', 'hbo max', 'hbomax'], ids: ['3202301029760', '3201601007230'], letter: 'H', color: '#5b2bd8' },
+      { label: 'Apple Music', match: ['apple music'], ids: ['3201908019041', '3201908019022'], letter: '♪', color: '#fa2d48' },
+      { label: 'ViX',       match: ['vix'], ids: [], letter: 'V', color: '#ff6b00' }
     ]
   };
 
@@ -73,9 +76,10 @@
     picking = false;
     document.body.className += ' picked';
     document.getElementById('who').innerHTML = '<span class="who-dot" style="background:' + current.grad + '">' +
-      current.name.charAt(0) + '</span>' + current.name + '<span class="who-hint">▲ cambiar</span>';
+      current.name.charAt(0) + '</span>' + current.name + '<span class="who-hint">cambiar</span>';
     tickClock();
     if (window.Widgets) window.Widgets.render(current.name);
+    setZone('dock');
   }
 
   var DAYS = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
@@ -179,15 +183,16 @@
     tiles = [];
     for (var i = 0; i < CONFIG.apps.length; i++) {
       var def = CONFIG.apps[i];
-      var app = installed ? findApp(installed, def) : null;
+      var app = (installed && !def.module) ? findApp(installed, def) : null;
       var el = document.createElement('div');
-      el.className = 'tile' + (installed && !app ? ' missing' : '');
+      var missing = installed && !def.module && !app;
+      el.className = 'tile' + (missing ? ' missing' : '');
       var src = app && app.iconPath ? app.iconPath : '';
       if (src && src.charAt(0) === '/') src = 'file://' + src;
       var icon = src ? '<img src="' + src + '" alt="">' : def.letter;
       var sub = def.sub || '';
-      if (installed && !app) sub = 'No instalada';
-      el.innerHTML = '<div class="ico">' + icon + '</div><div class="name">' + def.label + '</div>' +
+      if (missing) sub = 'No instalada';
+      el.innerHTML = '<div class="ico" style="background:' + (src ? 'transparent' : def.color) + '">' + icon + '</div><div class="name">' + def.label + '</div>' +
         (sub ? '<div class="sub">' + sub + '</div>' : '');
       // fallback to the letter if the TV icon fails to load
       var img = el.querySelector('img');
@@ -207,18 +212,50 @@
 
   function launch() {
     var t = tiles[focusIndex];
-    if (!t || !t.app || !hasTizen) return;
+    if (!t || !hasTizen) return;
+    if (t.def.module) { launchBrewModule(t.def.module, t.def.label); return; }
+    var ids = (t.app ? [t.app.id] : []).concat(t.def.ids || []);
+    if (!ids.length) { flash(t.def.label + ': falta su ID en esta tele'); return; }
+    flash('Abriendo ' + t.def.label + '…');
+    tryIds(ids, 0, t.def.label, '');
+  }
+
+  // Try each candidate Samsung app ID until one opens
+  function tryIds(ids, i, label, lastErr) {
+    if (i >= ids.length) { flash(label + ' no se pudo abrir (' + lastErr + ')'); return; }
     try {
-      tizen.application.launch(t.app.id, null, function () {
-        flash(t.def.label + ' no se pudo abrir');
+      tizen.application.launch(ids[i], null, function (err) {
+        tryIds(ids, i + 1, label, (err && err.name) || 'error');
       });
-    } catch (e) { flash('Error al abrir ' + t.def.label); }
+    } catch (e) { tryIds(ids, i + 1, label, e.name || 'error'); }
+  }
+
+  // Launch a TizenBrew module (e.g. TizenTube) through TizenBrew's local service
+  function launchBrewModule(nameFragment, label) {
+    var ws;
+    try { ws = new WebSocket('ws://localhost:8081'); } catch (e) { flash('No se pudo abrir ' + label); return; }
+    var done = false;
+    ws.onopen = function () { ws.send(JSON.stringify({ type: 4 })); };          // GetModules
+    ws.onmessage = function (ev) {
+      var msg; try { msg = JSON.parse(ev.data); } catch (e) { return; }
+      if (msg.type !== 4 || !msg.payload || done) return;
+      var mdl = null;
+      for (var i = 0; i < msg.payload.length; i++)
+        if ((msg.payload[i].fullName || '').toLowerCase().indexOf(nameFragment) !== -1) mdl = msg.payload[i];
+      if (!mdl) { flash(label + ' no está en TizenBrew'); ws.close(); return; }
+      done = true;
+      try { for (var k = 0; k < (mdl.keys || []).length; k++) tizen.tvinputdevice.registerKey(mdl.keys[k]); } catch (e) {}
+      ws.send(JSON.stringify({ type: 5, payload: mdl }));                      // LaunchModule
+      if (!mdl.evaluateScriptOnDocumentStart) setTimeout(function () { location.href = mdl.appPath; }, 150);
+    };
+    ws.onerror = function () { flash('No se pudo abrir ' + label); };
   }
 
   function flash(msg) {
     var h = $('hint');
     h.textContent = msg;
-    setTimeout(function () { h.textContent = '◀ ▶ para elegir · OK para abrir'; }, 3000);
+    clearTimeout(flash.t);
+    flash.t = setTimeout(function () { h.textContent = HINTS[zone]; }, 3000);
   }
 
   function loadApps() {
@@ -226,6 +263,32 @@
     try {
       tizen.application.getAppsInfo(function (list) { buildDock(list); }, function () { buildDock(null); });
     } catch (e) { buildDock(null); }
+  }
+
+  // ---------- Focus zones: dock (apps) · panel (widget) · who (profile) ----------
+  var zone = 'dock';
+  var HINTS = {
+    dock: '◀ ▶ para elegir · OK para abrir · ▲ más opciones',
+    panel: '◀ ▶ para navegar · OK para abrir · ▼ apps · ▲ perfil',
+    who: 'OK para cambiar de perfil · ▼ regresar'
+  };
+  function setZone(z) {
+    zone = z;
+    var panel = $('panel'), who = $('who');
+    panel.className = panel.className.replace(' focus', '') + (z === 'panel' ? ' focus' : '');
+    who.className = 'who' + (z === 'who' ? ' focus' : '');
+    var dock = $('dock');
+    dock.className = 'dock' + (z === 'dock' ? '' : ' dim');
+    if (window.Widgets) window.Widgets.pause(z === 'panel');
+    $('hint').textContent = HINTS[z];
+  }
+  function openFromPanel() {
+    var platform = window.Widgets.currentPlatform();
+    if (!platform) { flash('Este widget es solo informativo'); return; }
+    for (var i = 0; i < tiles.length; i++) {
+      if (tiles[i].def.label === platform) { focusIndex = i; setFocus(i); setZone('dock'); launch(); return; }
+    }
+    flash(platform + ' no está en tus apps');
   }
 
   // ---------- Remote control ----------
@@ -247,8 +310,21 @@
       else if (e.keyCode === 10009 && current) { picking = false; document.body.className += ' picked'; applyTheme(current); }
       return;
     }
+    if (zone === 'panel') {
+      if (e.keyCode === 37) window.Widgets.prev();
+      else if (e.keyCode === 39) window.Widgets.next();
+      else if (e.keyCode === 38) setZone('who');
+      else if (e.keyCode === 40) setZone('dock');
+      else if (e.keyCode === 13) openFromPanel();
+      return;
+    }
+    if (zone === 'who') {
+      if (e.keyCode === 13) { setZone('dock'); openPicker(); }
+      else if (e.keyCode === 40) setZone(window.Widgets && window.Widgets.active() ? 'panel' : 'dock');
+      return;
+    }
     switch (e.keyCode) {
-      case 38: openPicker(); break;                    // up → change profile
+      case 38: setZone(window.Widgets && window.Widgets.active() ? 'panel' : 'who'); break; // up
       case 37: setFocus(focusIndex - 1); break;        // left
       case 39: setFocus(focusIndex + 1); break;        // right
       case 13: launch(); break;                        // OK

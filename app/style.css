@@ -157,3 +157,11 @@ body.ambient .panel { opacity: 0; }
 #stage { -webkit-transition: opacity .5s ease; transition: opacity .5s ease; }
 body:not(.picked) #stage { opacity: .15; }
 body.picked .picker { opacity: 0; pointer-events: none; }
+
+/* ---------- Focus zones ---------- */
+.panel.focus { border-color: rgba(255,255,255,.6); background: rgba(255,255,255,.12); box-shadow: 0 24px 60px rgba(0,0,0,.45); }
+.who { padding: 8px 18px 8px 8px; border-radius: 34px; border: 2px solid transparent; }
+.who.focus { border-color: rgba(255,255,255,.6); background: rgba(255,255,255,.12); }
+.dock { -webkit-transition: opacity .3s ease; transition: opacity .3s ease; }
+.dock.dim { opacity: .55; }
+.dock.dim .tile.focus { -webkit-transform: none; transform: none; border-color: rgba(255,255,255,.08); box-shadow: none; }

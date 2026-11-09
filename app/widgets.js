@@ -26,7 +26,7 @@
     return false;
   }
 
-  var timer = null, refresh = null, idx = 0, items = [], mode = null;
+  var timer = null, refresh = null, idx = 0, items = [], mode = null, meta = null, paused = false, rotateMs = 0;
   var $ = function (id) { return document.getElementById(id); };
   function pad(n) { return n < 10 ? '0' + n : '' + n; }
 
@@ -46,12 +46,16 @@
       $('wDots').innerHTML = dots;
     }, 300);
   }
-  function rotate(ms) { clearInterval(timer); timer = setInterval(function () { show(idx + 1); }, ms); }
+  function rotate(ms) {
+    rotateMs = ms; clearInterval(timer);
+    timer = setInterval(function () { if (!paused) show(idx + 1); }, ms);
+  }
 
   // ---------- Jocelyn: series ----------
   function seriesCards() {
     var list = SERIES.slice();
     for (var i = list.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = list[i]; list[i] = list[j]; list[j] = t; }
+    meta = list;
     return list.map(function (s) {
       return '<div class="s-card">' +
         '<div class="s-meta"><span class="chip" style="background:' + (PLATFORM_COLOR[s.p] || '#555') + '">' + s.p + '</span>' +
@@ -136,9 +140,15 @@
 
   // ---------- Public ----------
   window.Widgets = {
+    active: function () { return mode !== null; },
+    next: function () { show(idx + 1); },
+    prev: function () { show(idx - 1); },
+    pause: function (p) { paused = p; },
+    // platform of the series on screen (Jocelyn), or null
+    currentPlatform: function () { return mode === 'series' && meta && meta[idx] ? meta[idx].p : null; },
     render: function (profileName) {
       stop();
-      idx = 0; items = [];
+      idx = 0; items = []; meta = null; paused = false;
       var panel = $('panel');
       if (profileName === 'Renato') {
         mode = 'nba';

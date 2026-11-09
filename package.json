@@ -1,6 +1,6 @@
 {
   "name": "inicio-tv",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Pantalla de inicio familiar: reloj, clima, perfiles, NBA y series",
   "packageType": "app",
   "appName": "Inicio",
